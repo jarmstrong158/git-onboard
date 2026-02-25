@@ -169,6 +169,38 @@ WHAT THIS DOES:
     os.chdir(original_dir)
 
     if success:
+        # Offer to create a .gitignore so junk files don't get committed
+        gitignore_path = os.path.join(path, ".gitignore")
+        if not os.path.exists(gitignore_path):
+            explain("""One more thing — a .gitignore file tells Git which files to
+IGNORE (not track). Without one, Git will try to save everything
+in this folder, including junk files like:
+  - __pycache__/  (Python's auto-generated cache files)
+  - .env          (secret keys and passwords)
+  - node_modules/ (thousands of dependency files)
+
+These clutter your repo and can even leak sensitive info.""")
+
+            if prompt_yes_no("Create a .gitignore with common defaults?"):
+                with open(gitignore_path, "w", encoding="utf-8") as f:
+                    f.write(
+                        "# Python\n"
+                        "__pycache__/\n"
+                        "*.pyc\n"
+                        ".env\n"
+                        "venv/\n"
+                        "\n"
+                        "# IDE / Editor\n"
+                        ".vscode/\n"
+                        ".idea/\n"
+                        "\n"
+                        "# OS files\n"
+                        ".DS_Store\n"
+                        "Thumbs.db\n"
+                    )
+                print(f"  Created: {gitignore_path}")
+                print()
+
         explain(f"""Done! Git is now tracking: {path}
 
 WHAT JUST HAPPENED:
@@ -663,6 +695,17 @@ Use your terminal to navigate into the new folder to start working with it.""")
 # WORKFLOW: Create a README
 # ============================================================
 
+def get_repo_root():
+    """Find the root directory of the current Git repo, or None."""
+    result = subprocess.run(
+        ["git", "rev-parse", "--show-toplevel"],
+        capture_output=True, text=True
+    )
+    if result.returncode == 0:
+        return result.stdout.strip()
+    return None
+
+
 def workflow_readme():
     explain("""--- Create a README ---
 
@@ -680,6 +723,13 @@ WHAT THIS DOES:
 
     input("  Press Enter to continue...")
     clear_screen()
+
+    # Find the repo root so the README lands in the right place
+    repo_root = get_repo_root()
+    if not repo_root:
+        explain("""You're not inside a Git repository. Use 'Initialize a new repo'
+first (option 1), then come back here to create your README.""")
+        return
 
     print("  Answer the following prompts. Press Enter to skip any section.\n")
 
@@ -726,7 +776,7 @@ WHAT THIS DOES:
     print()
 
     if prompt_yes_no("Write this to README.md?"):
-        file_path = os.path.join(os.getcwd(), "README.md")
+        file_path = os.path.join(repo_root, "README.md")
         with open(file_path, "w", encoding="utf-8") as f:
             f.write(readme_content)
         explain(f"""README.md created at: {file_path}
