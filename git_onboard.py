@@ -373,10 +373,8 @@ THE FULL FLOW:
   [done] Step 2. Check status    — already done
   [done] Step 3. Stage + commit  — you just did this
    -->   Step 4. Create a README — build your project's front page (option 4)
-         Step 5. Push to GitHub  — upload everything (option 5)
-
-  NOTE: After creating your README, you'll come back to option 3
-  one more time to stage + commit it before pushing.""")
+                                   (skip if you already have one)
+         Step 5. Push to GitHub  — upload everything (option 5)""")
 
 
 # ============================================================
