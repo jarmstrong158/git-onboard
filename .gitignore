@@ -16,3 +16,6 @@ Thumbs.db
 build/
 dist/
 *.spec
+
+# Test cache
+.pytest_cache/

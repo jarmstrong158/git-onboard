@@ -566,7 +566,9 @@ THE FULL FLOW:
 
 EXTRA TOOLS (explore these when you need them):
   Option 6. View commit history — look back at past saves
-  Option 7. Clone a repo — download someone else's project""")
+  Option 7. Clone a repo — download someone else's project
+  Option 8. Create a branch — work on changes without affecting main
+  Option 9. Merge branches — combine branch changes back together""")
     elif "src refspec" in (stderr or ""):
         explain("""Push failed because there's nothing to push yet — you
 haven't made any commits (save points) in this repo.
@@ -795,6 +797,421 @@ THE FULL FLOW:
 
 
 # ============================================================
+# WORKFLOW: Create a new branch
+# ============================================================
+
+def workflow_branch():
+    explain("""--- Create a New Branch ---
+
+WHAT IS A BRANCH?
+  A branch is a separate copy of your project where you can make
+  changes without affecting the original. Think of it like this:
+
+    Main road (your 'main' or 'master' branch)
+      └── Side road (your new branch)
+
+  You drive down the side road, build something, and if it works
+  out, you merge it back onto the main road. If it doesn't work
+  out, you can abandon the side road and the main road is untouched.
+
+WHY USE BRANCHES?
+  - Test new ideas without breaking what already works
+  - Work on multiple features at the same time
+  - Keep your 'main' branch clean and always working
+  - This is how professional teams work — nobody codes
+    directly on 'main' in the real world""")
+
+    input("  Press Enter to continue...")
+    clear_screen()
+
+    if not is_git_repo():
+        explain("You're not inside a Git repository. Use 'Initialize a new repo' first.")
+        return
+
+    # Check for commits first — can't branch without at least one
+    result = subprocess.run(
+        ["git", "log", "--oneline", "-1"],
+        capture_output=True, text=True
+    )
+    if result.returncode != 0:
+        explain("""You need at least one commit before you can create a branch.
+Go to option 3 (Stage and commit) first, then come back here.""")
+        return
+
+    print("  1. Create a new branch")
+    print("  2. Switch to an existing branch")
+    print("  3. See all branches")
+    print("  4. Return to main menu")
+    print()
+
+    while True:
+        try:
+            choice = int(input("  Pick an option: ").strip())
+            if 1 <= choice <= 4:
+                break
+        except ValueError:
+            pass
+        print("  Please enter 1, 2, 3, or 4.")
+
+    if choice == 4:
+        print("  Cancelled.")
+        return
+
+    if choice == 3:
+        explain("""Listing all branches. The one with the * is the branch
+you're currently on:""")
+        run_git("branch")
+        return
+
+    if choice == 2:
+        # Show existing branches first
+        explain("Here are your current branches:")
+        run_git("branch")
+
+        branch_name = input("  Enter the branch name to switch to: ").strip()
+        if not branch_name:
+            print("  Cancelled.")
+            return
+
+        explain(f"""Switching to branch '{branch_name}':
+
+WHAT THIS DOES:
+  'git checkout' moves you from your current branch to another one.
+  All your files will update to match whatever state that branch is
+  in. Don't worry — nothing is lost. Your other branch still exists
+  and you can switch back anytime.""")
+
+        success, _, stderr = run_git("checkout", branch_name)
+
+        if success:
+            explain(f"""You're now on branch '{branch_name}'.
+
+Any changes you make from here will only affect THIS branch.
+Your other branches are untouched.""")
+        elif "did not match" in (stderr or ""):
+            explain(f"""Branch '{branch_name}' doesn't exist. Check the spelling
+and try again — branch names are case-sensitive.
+
+Tip: use option 3 (See all branches) to see what's available.""")
+        return
+
+    # choice == 1: Create new branch
+    clear_screen()
+    explain("""--- Name Your New Branch ---
+
+Branch names should be short, descriptive, and use hyphens instead
+of spaces. Good naming helps you (and your team) know what each
+branch is for at a glance.
+
+GOOD EXAMPLES:
+  add-login-page
+  fix-search-bug
+  update-readme
+
+BAD EXAMPLES:
+  my branch        (no spaces allowed)
+  asdf             (tells you nothing)
+  final-v2-real    (we've all been there, but don't)""")
+
+    branch_name = input("  Enter a name for your new branch: ").strip()
+
+    if not branch_name:
+        print("  Cancelled.")
+        return
+
+    # Validate branch name (no spaces)
+    if " " in branch_name:
+        explain("Branch names can't have spaces. Use hyphens instead (e.g., 'my-feature').")
+        return
+
+    explain(f"""Creating branch '{branch_name}' and switching to it:
+
+WHAT THIS DOES:
+  'git checkout -b' does two things at once:
+    1. Creates a new branch (a copy of your current branch)
+    2. Switches you onto it immediately
+
+  From this point on, any changes you make only affect this branch.
+  Your main branch stays exactly how it was.""")
+
+    success, _, _ = run_git("checkout", "-b", branch_name)
+
+    if success:
+        explain(f"""Branch '{branch_name}' created! You're now working on it.
+
+WHAT TO DO NEXT:
+  1. Make your changes (edit files, add features, fix bugs)
+  2. Use option 3 (Stage and commit) to save your work on this branch
+  3. When you're happy with the changes, use option 9 (Merge branches)
+     to bring them back into your main branch
+
+  You can switch back to your main branch at any time using
+  option 8 → Switch to an existing branch.
+
+  Your main branch is completely untouched until you merge.""")
+
+
+# ============================================================
+# WORKFLOW: Merge branches
+# ============================================================
+
+def workflow_merge():
+    explain("""--- Merge Branches ---
+
+WHAT IS MERGING?
+  Merging takes the changes from one branch and combines them into
+  another. It's how you bring your work back to the main road after
+  building something on a side road.
+
+  Example:
+    You created a branch called 'add-login-page', built the login
+    page, and committed your work. Now you want those changes on
+    your main branch. That's a merge.
+
+HOW IT WORKS:
+  1. You switch to the branch you want to RECEIVE the changes
+     (usually 'main' or 'master')
+  2. You tell Git to merge the other branch INTO it
+  3. Git combines the changes automatically
+
+WHAT COULD GO WRONG?
+  If both branches edited the SAME lines in the SAME file, Git
+  can't decide which version to keep. That's called a 'merge
+  conflict.' Don't panic — this tool will walk you through
+  fixing it if that happens.""")
+
+    input("  Press Enter to continue...")
+    clear_screen()
+
+    if not is_git_repo():
+        explain("You're not inside a Git repository. Use 'Initialize a new repo' first.")
+        return
+
+    # Show current branch
+    result = subprocess.run(
+        ["git", "branch", "--show-current"],
+        capture_output=True, text=True
+    )
+    current_branch = result.stdout.strip()
+
+    explain(f"""You are currently on branch: {current_branch}
+
+Here are all your branches:""")
+    run_git("branch")
+
+    # Check if there's more than one branch
+    all_branches = subprocess.run(
+        ["git", "branch"],
+        capture_output=True, text=True
+    )
+    branch_list = [b.strip().lstrip("* ") for b in all_branches.stdout.strip().splitlines()]
+
+    if len(branch_list) < 2:
+        explain("""You only have one branch. There's nothing to merge.
+
+Create a new branch first using option 8 (Create a new branch),
+make some changes, commit them, and then come back here to merge.""")
+        return
+
+    # Step 1: Switch to the receiving branch
+    explain(f"""--- Merge: Step 1 of 2 — SWITCH TO THE RECEIVING BRANCH ---
+
+You need to be on the branch that should RECEIVE the changes.
+Usually that's your main branch ('main' or 'master').
+
+You're currently on: {current_branch}""")
+
+    target = input("  Switch to which branch? (or press Enter to stay on current): ").strip()
+
+    if target and target != current_branch:
+        explain(f"Switching to '{target}':")
+        success, _, _ = run_git("checkout", target)
+        if not success:
+            explain("Failed to switch branches. Check the name and try again.")
+            return
+        current_branch = target
+
+    # Step 2: Pick the branch to merge in
+    input("\n  Press Enter to continue...")
+    clear_screen()
+
+    explain(f"""--- Merge: Step 2 of 2 — MERGE THE OTHER BRANCH ---
+
+You're on: {current_branch}
+
+Now pick which branch to merge INTO '{current_branch}'.
+This will bring all the changes from that branch into this one.""")
+
+    # Show branches (excluding current)
+    other_branches = [b for b in branch_list if b != current_branch]
+    print()
+    for i, b in enumerate(other_branches, 1):
+        print(f"  {i}. {b}")
+    print()
+
+    while True:
+        try:
+            choice = int(input("  Pick a branch to merge (number): ").strip())
+            if 1 <= choice <= len(other_branches):
+                break
+        except ValueError:
+            pass
+        print(f"  Please enter a number between 1 and {len(other_branches)}.")
+
+    merge_branch = other_branches[choice - 1]
+
+    explain(f"""Merging '{merge_branch}' into '{current_branch}':
+
+WHAT'S ABOUT TO HAPPEN:
+  Git will try to combine all the commits from '{merge_branch}'
+  into '{current_branch}'. If there are no conflicting edits,
+  it will happen automatically.""")
+
+    success, output, stderr = run_git("merge", merge_branch)
+
+    if success:
+        explain(f"""Merge complete! The changes from '{merge_branch}' are now
+part of '{current_branch}'.
+
+WHAT TO DO NEXT:
+  - Use option 5 (Push to GitHub) to upload the merged changes
+  - If you're done with the '{merge_branch}' branch, you can
+    delete it (it's safe — all its changes are here now)""")
+
+        if prompt_yes_no(f"Delete the '{merge_branch}' branch? (it's been merged, so it's safe)"):
+            run_git("branch", "-d", merge_branch)
+            explain(f"Branch '{merge_branch}' deleted. Clean and tidy.")
+
+    elif "CONFLICT" in (output or "") or "CONFLICT" in (stderr or ""):
+        # Merge conflict! Walk them through it.
+        handle_merge_conflict(merge_branch, current_branch)
+    else:
+        explain(f"""Merge failed. Here's what Git said:
+
+  {stderr or output or 'No details available.'}
+
+This sometimes happens if you have uncommitted changes. Try:
+  1. Go to option 3 (Stage and commit) to save your current work
+  2. Come back and try the merge again""")
+
+
+def handle_merge_conflict(merge_branch, current_branch):
+    """Walk the user through resolving a merge conflict."""
+    explain(f"""--- MERGE CONFLICT ---
+
+Don't panic. This is normal and every developer deals with it.
+
+WHAT HAPPENED:
+  Both '{current_branch}' and '{merge_branch}' edited the same
+  lines in the same file(s). Git doesn't know which version you
+  want to keep, so it's asking YOU to decide.
+
+WHAT GIT DID:
+  Git marked the conflicting sections in your files with special
+  markers that look like this:
+
+  <<<<<<< HEAD
+  (your version on '{current_branch}')
+  =======
+  (their version from '{merge_branch}')
+  >>>>>>> {merge_branch}
+
+  Everything between <<<<<<< and ======= is YOUR current version.
+  Everything between ======= and >>>>>>> is the INCOMING version.
+
+LET'S SEE WHICH FILES HAVE CONFLICTS:""")
+
+    run_git("status", "--short")
+
+    explain("""Files marked with 'UU' or 'AA' have conflicts that need fixing.
+
+HOW TO FIX IT:
+  1. Open each conflicted file in your text editor
+  2. Find the <<<<<<< / ======= / >>>>>>> markers
+  3. Decide which version to keep (or combine them)
+  4. DELETE the marker lines (<<<, ===, >>>) entirely
+  5. Save the file
+
+EXAMPLE — before fixing:
+  <<<<<<< HEAD
+  print("Hello World")
+  =======
+  print("Hello, World!")
+  >>>>>>> add-greeting
+
+EXAMPLE — after fixing (you picked the version you want):
+  print("Hello, World!")
+
+  (You deleted the markers and kept the version you preferred.)""")
+
+    input("  Press Enter when you've fixed the conflicts in your editor...")
+    clear_screen()
+
+    explain("""Now let's verify the conflicts are resolved.
+
+IMPORTANT: Make sure you've:
+  - Removed ALL <<<<<<< / ======= / >>>>>>> markers
+  - Saved every conflicted file
+  - The files look the way you want them to
+
+Let's check the status:""")
+
+    run_git("status", "--short")
+
+    # Check if there are still unmerged files
+    result = subprocess.run(
+        ["git", "status", "--porcelain"],
+        capture_output=True, text=True
+    )
+    has_conflicts = any(
+        line.startswith("UU") or line.startswith("AA")
+        for line in result.stdout.strip().splitlines()
+    )
+
+    if has_conflicts:
+        explain("""It looks like there are still unresolved conflicts.
+
+Open the files marked with 'UU' in your editor and make sure
+you've removed ALL the conflict markers (<<<, ===, >>>).
+
+When you're done, come back and try the merge again.""")
+        return
+
+    explain("""Looks good! Now we need to:
+  1. Stage the resolved files (tell Git you've fixed them)
+  2. Complete the merge with a commit""")
+
+    if prompt_yes_no("Stage all resolved files and complete the merge?"):
+        run_git("add", ".")
+
+        success, _, _ = run_git("commit", "-m",
+                                f"Merge branch '{merge_branch}' into {current_branch}")
+
+        if success:
+            explain(f"""Merge conflict resolved! The changes from '{merge_branch}'
+are now part of '{current_branch}'.
+
+You just handled a merge conflict like a pro. That's genuinely
+one of the things that trips up even experienced developers.
+
+WHAT TO DO NEXT:
+  - Use option 5 (Push to GitHub) to upload the merged result
+  - If you're done with '{merge_branch}', you can delete it""")
+
+            if prompt_yes_no(f"Delete the '{merge_branch}' branch?"):
+                run_git("branch", "-d", merge_branch)
+                explain(f"Branch '{merge_branch}' deleted.")
+    else:
+        explain("""Merge left in progress. You can:
+  - Fix more files and come back to complete it
+  - Or run 'git merge --abort' to cancel the merge entirely""")
+
+        if prompt_yes_no("Cancel the merge entirely?"):
+            run_git("merge", "--abort")
+            explain("Merge cancelled. Everything is back to how it was before.")
+
+
+# ============================================================
 # MAIN MENU
 # ============================================================
 
@@ -833,6 +1250,16 @@ MENU_OPTIONS = [
         "Clone a repo",
         "Download an existing project from GitHub to your machine.",
         workflow_clone,
+    ),
+    (
+        "Create a new branch",
+        "Work on changes in isolation without affecting your main code.",
+        workflow_branch,
+    ),
+    (
+        "Merge branches",
+        "Combine changes from one branch into another. Handles conflicts too.",
+        workflow_merge,
     ),
 ]
 
