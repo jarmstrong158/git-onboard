@@ -133,6 +133,21 @@ WHAT THIS DOES:
 
     path = os.path.abspath(path)
 
+    # Guard against system directories that will always fail
+    protected = ["\\windows", "\\system32", "\\program files",
+                 "\\program files (x86)", "\\appdata"]
+    path_lower = path.lower()
+    if any(p in path_lower for p in protected):
+        explain(f"""That path looks like a system folder:
+  {path}
+
+  You can't (and shouldn't) init a Git repo in a system directory.
+  You need to point this at YOUR project folder — for example:
+    C:\\Users\\YourName\\repos\\my-project
+
+  Go back and enter the path to where your actual project files live.""")
+        return
+
     if not os.path.isdir(path):
         if prompt_yes_no(f"'{path}' doesn't exist. Create it?"):
             os.makedirs(path)
@@ -161,10 +176,20 @@ WHAT JUST HAPPENED:
   Nothing has been uploaded. GitHub doesn't know about this yet.
 
 THE FULL FLOW:
-  [done] Step 1. Initialize    — you just did this
-   -->   Step 2. Check status   — see what Git sees (option 2)
-         Step 3. Stage + commit — save a snapshot locally (option 3)
-         Step 4. Push           — upload to GitHub (option 4)""")
+  [done] Step 1. Initialize     — you just did this
+   -->   Step 2. Check status    — see what Git sees (option 2)
+         Step 3. Stage + commit  — save a snapshot locally (option 3)
+         Step 4. Create a README — build your project's front page (option 4)
+         Step 5. Push to GitHub  — upload everything (option 5)""")
+    else:
+        explain(f"""Git init failed for: {path}
+
+  This usually means you don't have permission to create files in
+  that folder. Make sure the path points to a folder YOU created —
+  for example:
+    C:\\Users\\YourName\\repos\\my-project
+
+  Try again with the correct path to your project folder.""")
 
 
 # ============================================================
@@ -222,7 +247,8 @@ WHAT THIS DOES:
             explain("""WHAT TO DO NEXT:
   To save these changes, use option 3 (Stage and commit) from the
   main menu. That will lock them into a snapshot on your machine.
-  Then use option 4 (Push to GitHub) to upload them.""")
+  Then use option 4 (Create a README) to build your project's front
+  page, and option 5 (Push to GitHub) to upload everything.""")
 
 
 # ============================================================
@@ -343,10 +369,14 @@ WHAT JUST HAPPENED:
   doesn't have them yet.
 
 THE FULL FLOW:
-  [done] Step 1. Initialize    — already done
-  [done] Step 2. Check status   — already done
-  [done] Step 3. Stage + commit — you just did this
-   -->   Step 4. Push           — upload to GitHub (option 4)""")
+  [done] Step 1. Initialize     — already done
+  [done] Step 2. Check status    — already done
+  [done] Step 3. Stage + commit  — you just did this
+   -->   Step 4. Create a README — build your project's front page (option 4)
+         Step 5. Push to GitHub  — upload everything (option 5)
+
+  NOTE: After creating your README, you'll come back to option 3
+  one more time to stage + commit it before pushing.""")
 
 
 # ============================================================
@@ -492,16 +522,21 @@ Linking to GitHub:""")
 WHAT JUST HAPPENED:
   Your local commits have been uploaded to your GitHub repo.
   Anyone with the link can now see your project, your code,
-  and your README (if you made one).
+  and your README.
 
 THE FULL FLOW:
-  [done] Step 1. Initialize    — already done
-  [done] Step 2. Check status   — already done
-  [done] Step 3. Stage + commit — already done
-  [done] Step 4. Push           — you just did this!
+  [done] Step 1. Initialize     — already done
+  [done] Step 2. Check status    — already done
+  [done] Step 3. Stage + commit  — already done
+  [done] Step 4. Create a README — already done
+  [done] Step 5. Push to GitHub  — you just did this!
 
   You're all set. From now on, whenever you make changes:
-  just repeat steps 2-4 (status → commit → push).""")
+  just repeat steps 2, 3, and 5 (status → commit → push).
+
+EXTRA TOOLS (explore these when you need them):
+  Option 6. View commit history — look back at past saves
+  Option 7. Clone a repo — download someone else's project""")
     elif "src refspec" in (stderr or ""):
         explain("""Push failed because there's nothing to push yet — you
 haven't made any commits (save points) in this repo.
@@ -698,9 +733,15 @@ WHAT THIS DOES:
             f.write(readme_content)
         explain(f"""README.md created at: {file_path}
 
-NEXT STEP:
-  Stage and commit this file to include it in your repo history.
-  Then push to GitHub to see it rendered on your repo page.""")
+THE FULL FLOW:
+  [done] Step 1. Initialize     — already done
+  [done] Step 2. Check status    — already done
+  [done] Step 3. Stage + commit  — already done
+  [done] Step 4. Create a README — you just did this
+   -->   Step 5. Push to GitHub  — upload everything (option 5)
+
+  BEFORE YOU PUSH: Go back to option 3 (Stage and commit) to save
+  the README into your repo history. Then use option 5 to push.""")
     else:
         print("  Cancelled. Nothing was written.")
 
@@ -726,6 +767,11 @@ MENU_OPTIONS = [
         workflow_stage_commit,
     ),
     (
+        "Create a README",
+        "Build the front page of your project — the first thing people see on GitHub.",
+        workflow_readme,
+    ),
+    (
         "Push to GitHub",
         "Upload your saved snapshots to your GitHub profile for the world to see.",
         workflow_push,
@@ -739,11 +785,6 @@ MENU_OPTIONS = [
         "Clone a repo",
         "Download an existing project from GitHub to your machine.",
         workflow_clone,
-    ),
-    (
-        "Create a README",
-        "Build the front page of your project — the first thing people see on GitHub.",
-        workflow_readme,
     ),
 ]
 
