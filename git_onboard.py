@@ -930,28 +930,155 @@ def main_menu():
 
 
 # ============================================================
+# SETUP: Git installation and configuration checks
+# ============================================================
+
+def check_git_installed():
+    """
+    Check if Git is installed. If not, walk the user through installation
+    and wait for them to complete it before continuing.
+    Returns True once Git is detected.
+    """
+    result = subprocess.run(["git", "--version"], capture_output=True, text=True)
+
+    if result.returncode == 0:
+        return True
+
+    # Git not found — walk the user through installation
+    clear_screen()
+    print()
+    print("  ╔══════════════════════════════════╗")
+    print("  ║       GIT ONBOARD — SETUP        ║")
+    print("  ╚══════════════════════════════════╝")
+    print()
+    print("  Before we can start, you need Git installed on your")
+    print("  computer. Git is the tool that tracks your files —")
+    print("  this program is just a friendly wrapper around it.")
+    print()
+    print("  Don't worry, it's free and takes about 2 minutes.")
+    print()
+
+    if os.name == "nt":
+        # Windows
+        print("  ── HOW TO INSTALL GIT (WINDOWS) ──────────────────────")
+        print()
+        print("  1. Open your browser and go to:")
+        print("     https://git-scm.com/downloads/win")
+        print()
+        print("  2. The download should start automatically.")
+        print("     If not, click the download link for your system")
+        print("     (most likely '64-bit Git for Windows Setup')")
+        print()
+        print("  3. Run the installer. You'll see MANY screens of")
+        print("     options — just click 'Next' on every screen.")
+        print("     The defaults are fine.")
+        print()
+        print("  4. Click 'Install', then 'Finish' when it's done")
+        print()
+        print("  5. IMPORTANT: After installing, you need to CLOSE")
+        print("     this terminal window and open a new one. Then")
+        print("     run this program again. The new terminal will")
+        print("     know where Git is; this one won't.")
+    else:
+        # macOS / Linux
+        print("  ── HOW TO INSTALL GIT ─────────────────────────────────")
+        print()
+        print("  1. Open your browser and go to:")
+        print("     https://git-scm.com/downloads")
+        print()
+        print("  2. Pick your operating system (macOS or Linux)")
+        print()
+        print("  3. Follow the installation instructions on the page")
+        print()
+        print("  4. Close this terminal and open a new one, then")
+        print("     run this program again")
+
+    print()
+    print("  ─────────────────────────────────────────────────────────")
+    print()
+    input("  Press Enter to exit. Come back after installing Git...")
+    sys.exit(0)
+
+
+def check_git_config():
+    """
+    Check if git user.name and user.email are configured.
+    If not, walk the user through setting them up.
+    These are required before making any commits.
+    """
+    name_result = subprocess.run(
+        ["git", "config", "--global", "user.name"],
+        capture_output=True, text=True
+    )
+    email_result = subprocess.run(
+        ["git", "config", "--global", "user.email"],
+        capture_output=True, text=True
+    )
+
+    name = name_result.stdout.strip()
+    email = email_result.stdout.strip()
+
+    if name and email:
+        return  # Already configured
+
+    clear_screen()
+    print()
+    print("  ── GIT IDENTITY SETUP ─────────────────────────────────")
+    print()
+    print("  Git needs to know who you are. Every commit (save point)")
+    print("  you make gets tagged with your name and email so people")
+    print("  can see who wrote the code.")
+    print()
+    print("  This is a one-time setup. You won't be asked again.")
+    print()
+
+    if not name:
+        while True:
+            name = input("  Enter your name (e.g., Jane Smith): ").strip()
+            if name:
+                break
+            print("  Name can't be empty.")
+
+        subprocess.run(["git", "config", "--global", "user.name", name])
+        print(f"  Set: user.name = {name}")
+        print()
+
+    if not email:
+        while True:
+            email = input("  Enter your email (use the same one as your GitHub account): ").strip()
+            if email:
+                break
+            print("  Email can't be empty.")
+
+        subprocess.run(["git", "config", "--global", "user.email", email])
+        print(f"  Set: user.email = {email}")
+        print()
+
+    explain(f"""You're all set! Git will tag your commits as:
+  {name} <{email}>
+
+  You can change these later with:
+    git config --global user.name "New Name"
+    git config --global user.email "new@email.com" """)
+
+    input("  Press Enter to continue...")
+
+
+# ============================================================
 # ENTRY POINT
 # ============================================================
 
 if __name__ == "__main__":
     clear_screen()
 
-    # Verify Git is available
-    result = subprocess.run(["git", "--version"], capture_output=True, text=True)
-    if result.returncode != 0:
-        print()
-        print("  Git is not installed or not found on your system.")
-        print("  You need Git before this tool can do anything.")
-        print()
-        print("  HOW TO INSTALL:")
-        print("    1. Go to https://git-scm.com/downloads")
-        print("    2. Download the installer for your operating system")
-        print("    3. Run the installer (the default settings are fine)")
-        print("    4. Close and reopen your terminal")
-        print("    5. Run this program again")
-        print()
-        sys.exit(1)
+    # Step 1: Make sure Git is installed
+    check_git_installed()
 
+    # Step 2: Make sure Git identity is configured
+    result = subprocess.run(["git", "--version"], capture_output=True, text=True)
     print(f"\n  Git detected: {result.stdout.strip()}")
+    check_git_config()
+
+    # Step 3: Welcome and main menu
     show_welcome()
     main_menu()
