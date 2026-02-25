@@ -738,7 +738,7 @@ first (option 1), then come back here to create your README.""")
     problem = input("  The Problem — what inefficiency/gap/need existed?\n  > ").strip()
     solution = input("  The Solution — what does this tool/project do?\n  > ").strip()
     how_it_works = input("  How It Works — high-level architecture (2-3 sentences):\n  > ").strip()
-    results = input("  Results — measurable impact (hours saved, $ saved, etc.):\n  > ").strip()
+    results = input("  Results — what does this make easier, faster, or less frustrating?\n  > ").strip()
     tech = input("  Tech Stack — languages, libraries, APIs:\n  > ").strip()
     status = input("  Status (Active / Complete / In Progress): ").strip()
 
