@@ -159,16 +159,24 @@ WHAT THIS DOES:
     # Check if already a repo
     git_dir = os.path.join(path, ".git")
     if os.path.isdir(git_dir):
-        explain(f"This folder is already a Git repo. No need to init again.\n  Path: {path}")
+        os.chdir(path)
+        explain(f"""This folder is already a Git repo. No need to init again.
+  Path: {path}
+
+  This tool is now pointed at that folder. All menu options
+  will work against this repo.""")
         return
 
     # Run git init in the target directory
     original_dir = os.getcwd()
     os.chdir(path)
     success, _, _ = run_git("init")
-    os.chdir(original_dir)
+
+    if not success:
+        os.chdir(original_dir)
 
     if success:
+        # Stay in the repo directory so all other options work against it
         # Offer to create a .gitignore so junk files don't get committed
         gitignore_path = os.path.join(path, ".gitignore")
         if not os.path.exists(gitignore_path):
@@ -206,6 +214,10 @@ These clutter your repo and can even leak sensitive info.""")
 WHAT JUST HAPPENED:
   Git is watching this folder now, but ONLY on your machine.
   Nothing has been uploaded. GitHub doesn't know about this yet.
+
+  This tool is now pointed at that folder, so all the other
+  menu options (status, commit, push, etc.) will work against
+  the repo you just created. No need to navigate there yourself.
 
 THE FULL FLOW:
   [done] Step 1. Initialize     — you just did this
