@@ -745,6 +745,41 @@ WHAT THIS DOES:
 first (option 1), then come back here to create your README.""")
         return
 
+    # Check if a README already exists
+    existing_readme = os.path.join(repo_root, "README.md")
+    if os.path.exists(existing_readme):
+        explain(f"""A README.md already exists in this repo:
+  {existing_readme}
+
+You can keep your existing one, or replace it with a new one
+built using this tool's guided prompts.""")
+
+        print("  1. Keep my existing README")
+        print("  2. Build a new one (replaces the current file)")
+        print("  3. Return to main menu")
+        print()
+
+        while True:
+            try:
+                readme_choice = int(input("  Pick an option: ").strip())
+                if 1 <= readme_choice <= 3:
+                    break
+            except ValueError:
+                pass
+            print("  Please enter 1, 2, or 3.")
+
+        if readme_choice == 1:
+            explain("""Keeping your existing README. No changes made.
+
+If you haven't committed it yet, use option 3 (Stage and commit)
+to save it, then option 5 (Push to GitHub) to upload it.""")
+            return
+        if readme_choice == 3:
+            print("  Cancelled.")
+            return
+
+        clear_screen()
+
     print("  Answer the following prompts. Press Enter to skip any section.\n")
 
     project_name = input("  Project name: ").strip()
