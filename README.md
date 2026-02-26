@@ -35,6 +35,17 @@ pip install pytest
 python -m pytest test_git_onboard.py -v
 ```
 
+## Building from Source
+
+To build a standalone `.exe` (no Python required for the end user):
+
+```
+pip install pyinstaller
+pyinstaller --onefile git_onboard.py
+```
+
+The executable will be in the `dist/` folder.
+
 ## Tech Stack
 
 Python, subprocess, Git CLI
