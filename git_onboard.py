@@ -1413,10 +1413,12 @@ def check_git_installed():
     and wait for them to complete it before continuing.
     Returns True once Git is detected.
     """
-    result = subprocess.run(["git", "--version"], capture_output=True, text=True)
-
-    if result.returncode == 0:
-        return True
+    try:
+        result = subprocess.run(["git", "--version"], capture_output=True, text=True)
+        if result.returncode == 0:
+            return True
+    except FileNotFoundError:
+        pass  # Git executable doesn't exist at all — fall through to install guide
 
     # Git not found — walk the user through installation
     clear_screen()
@@ -1543,16 +1545,25 @@ def check_git_config():
 # ============================================================
 
 if __name__ == "__main__":
-    clear_screen()
+    try:
+        clear_screen()
 
-    # Step 1: Make sure Git is installed
-    check_git_installed()
+        # Step 1: Make sure Git is installed
+        check_git_installed()
 
-    # Step 2: Make sure Git identity is configured
-    result = subprocess.run(["git", "--version"], capture_output=True, text=True)
-    print(f"\n  Git detected: {result.stdout.strip()}")
-    check_git_config()
+        # Step 2: Make sure Git identity is configured
+        result = subprocess.run(["git", "--version"], capture_output=True, text=True)
+        print(f"\n  Git detected: {result.stdout.strip()}")
+        check_git_config()
 
-    # Step 3: Welcome and main menu
-    show_welcome()
-    main_menu()
+        # Step 3: Welcome and main menu
+        show_welcome()
+        main_menu()
+    except Exception as e:
+        print()
+        print(f"  Something went wrong: {e}")
+        print()
+        print("  If you're not sure what this means, take a screenshot")
+        print("  and send it to the person who gave you this tool.")
+        print()
+        input("  Press Enter to exit...")
