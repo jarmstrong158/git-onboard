@@ -7,6 +7,7 @@ Install:   pip install pytest  (if you don't have it)
 
 import os
 import subprocess
+import sys
 import tempfile
 import shutil
 import pytest
