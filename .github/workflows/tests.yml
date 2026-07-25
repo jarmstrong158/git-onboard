@@ -28,7 +28,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
-          cache: pip
+          # No `cache: pip`: it hashes a requirements.txt / pyproject.toml to
+          # build its key, and this repo has neither on purpose. Enabling it
+          # fails the job outright ("No file matched to [**/requirements.txt or
+          # **/pyproject.toml]") rather than degrading to an uncached install.
 
       - name: Install pytest only
         # git_onboard.py is stdlib-only: it is meant to be downloaded and run
