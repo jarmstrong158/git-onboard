@@ -1,0 +1,39 @@
+name: tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: ${{ matrix.os }} · py${{ matrix.python-version }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # This tool shells out to git and manipulates paths and file modes, all
+        # of which differ on Windows. It is also aimed at people setting up git
+        # for the first time, who are disproportionately on Windows.
+        os: [ubuntu-latest, windows-latest]
+        python-version: ['3.10', '3.12']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+
+      - name: Install pytest only
+        # git_onboard.py is stdlib-only: it is meant to be downloaded and run
+        # directly, so it cannot depend on anything being installed first.
+        run: python -m pip install --upgrade pip pytest
+
+      - name: Run tests
+        run: python -m pytest -q
