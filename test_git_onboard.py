@@ -23,11 +23,29 @@ from git_onboard import (
 # FIXTURES — reusable setup/teardown for tests
 # ============================================================
 
-def force_remove_readonly(func, path, exc_info):
-    """Handle Windows permission errors when cleaning up .git folders."""
+def force_remove_readonly(func, path, _exc):
+    """Handle Windows permission errors when cleaning up .git folders.
+
+    The third argument differs between the two rmtree hooks -- `onerror` passes
+    an exc_info triple, `onexc` passes the exception -- so it is named and
+    ignored here, which lets one handler serve both. See rmtree_compat.
+    """
     import stat
     os.chmod(path, stat.S_IWRITE)
     func(path)
+
+
+def rmtree_compat(path, handler):
+    """shutil.rmtree with a permission handler, on any supported Python.
+
+    `onexc` was added in 3.12; on 3.10/3.11 passing it is a TypeError, which
+    surfaced as 13 teardown errors after 20 passing tests -- the suite had only
+    ever run on one machine, which happened to be 3.12.
+    """
+    if sys.version_info >= (3, 12):
+        shutil.rmtree(path, onexc=handler)
+    else:
+        shutil.rmtree(path, onerror=handler)
 
 
 @pytest.fixture
@@ -38,7 +56,7 @@ def temp_dir():
     os.chdir(d)
     yield d
     os.chdir(original)
-    shutil.rmtree(d, onexc=force_remove_readonly)
+    rmtree_compat(d, force_remove_readonly)
 
 
 @pytest.fixture
